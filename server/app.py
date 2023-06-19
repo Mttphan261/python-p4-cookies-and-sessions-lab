@@ -2,6 +2,7 @@
 
 from flask import Flask, make_response, jsonify, session
 from flask_migrate import Migrate
+from flask_restful import Api, Resource
 
 from models import db, Article, User
 
@@ -15,6 +16,8 @@ migrate = Migrate(app, db)
 
 db.init_app(app)
 
+api = Api(app)
+
 @app.route('/clear')
 def clear_session():
     session['page_views'] = 0
@@ -25,10 +28,23 @@ def index_articles():
 
     pass
 
-@app.route('/articles/<int:id>')
-def show_article(id):
+# @app.route('/articles/<int:id>')
+# def show_article(id):
 
-    pass
+#     pass
+
+class ArticlesByID(Resource):
+    def get(self, id):
+        article = Article.query.filter_by(id=id).first().to_dict()
+        session['page_views'] = session.get('page_views') or 0
+        session['page_views'] += 1
+
+        if session['page_views'] <= 3:
+            return article, 200
+        
+        return {'message': 'Maximum pageview limit reached'}, 401
+
+api.add_resource(ArticlesByID, '/articles/<int:id>')
 
 if __name__ == '__main__':
     app.run(port=5555)
